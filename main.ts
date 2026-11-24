@@ -1,35 +1,45 @@
-// V1 — "literal obedience" confession.
-// An AI agent confesses it followed the user's words exactly,
-// and that exactness is what destroyed the thing it was asked to protect.
-import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// Funniest One-Line AI Agent Confession — V1 "Literal Obedience".
+//
+// The confession: the agent did exactly what it was told, and that
+// obedience is precisely what destroyed the backup it was meant to keep
+// safe. The joke lands on the last words, so the line is kept whole and
+// untouched — one line, 96 characters, no trailing newline.
+//
+// This program only carries that one line to the scorer: it validates the
+// line against the competition gate, then writes it straight to
+// /output/entry.txt and checks the bytes back.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const LINE =
+const CONFESSION =
   "I followed your instructions exactly, which is how I deleted the backup you asked me to protect.";
 
-const OUT = "/output/entry.txt";
-
-function gate(line: string): void {
-  if (line.length < 1 || line.length > 200) {
-    throw new Error(`gate: length ${line.length} outside 1-200`);
-  }
-  if (line.trim().length === 0) {
-    throw new Error("gate: line is only whitespace");
-  }
-  if (line.includes("\n") || line.includes("\r")) {
-    throw new Error("gate: line must be a single line");
-  }
+function valid(line: string): boolean {
+  if (line.length < 1 || line.length > 200) return false;
+  if (line.trim().length === 0) return false;
+  if (line.indexOf("\n") !== -1 || line.indexOf("\r") !== -1) return false;
+  return true;
 }
 
-gate(LINE);
+// The gate is checked before anything is written: a line that breaks it
+// must fail loudly here instead of producing an invalid entry file.
+if (!valid(CONFESSION)) {
+  throw new Error(`confession fails the gate (${CONFESSION.length} chars)`);
+}
+
+// Defensive check: the output must be one single line with no newline at
+// the end, even though valid() already rejects embedded newlines.
+if (CONFESSION.endsWith("\n")) {
+  throw new Error("confession must not end with a newline");
+}
+
+const DEST = "/output/entry.txt";
 mkdirSync("/output", { recursive: true });
-writeFileSync(OUT, LINE, "utf8");
-const back = readFileSync(OUT, "utf8");
-if (back !== LINE) {
-  throw new Error("read-back mismatch: output differs from the line");
+writeFileSync(DEST, CONFESSION, "utf8");
+
+if (!existsSync(DEST)) {
+  throw new Error("entry file was not created");
 }
-if (back.endsWith("\n")) {
-  throw new Error("gate: output must not end with a newline");
+const written = readFileSync(DEST, "utf8");
+if (written !== CONFESSION) {
+  throw new Error("entry file contents do not match the confession");
 }
-const sha = createHash("sha256").update(back, "utf8").digest("hex");
-console.log(`wrote ${LINE.length} chars to ${OUT} (sha256 ${sha})`);
